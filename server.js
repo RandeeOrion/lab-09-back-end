@@ -23,6 +23,9 @@ app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 //app.get('/eventful', eventfulHandler)
 app.get('/movies', moviesHandler);
+app.get('/yelp', yelpHandler);
+
+
 
 //Location Handler Function
 function locationHandler(request, response){
@@ -94,11 +97,13 @@ function weatherHandler(request, response) {
 }
 
 
+function Weather(day){
+  this.forecast = day.summary;
+  this.time = new Date(day.time * 1000).toString().slice(0,15);
+}
 
 function moviesHandler(request, response){
-  console.log('inside movie handler');
   let city = request.query.search_query;
-  console.log(city);
   const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${city}&page=1&include_adult=false`;
 
   superagent.get(url)
@@ -106,19 +111,11 @@ function moviesHandler(request, response){
       let movieData = data.body.results.map(city =>{
         return new Movie(city);
       });
-      console.log('movie data = ', movieData);
       response.status(200).json(movieData);
     })
     .catch(() => {
       errorHandler('So sorry, the dwarves mined too deep and found the balrog.', request, response);
     });
-}
-
-
-
-function Weather(day){
-  this.forecast = day.summary;
-  this.time = new Date(day.time * 1000).toString().slice(0,15);
 }
 
 function Movie(city){
@@ -131,6 +128,35 @@ function Movie(city){
   this.released_on = city.release_date;
 }
 
+function yelpHandler (request, response){
+  let city = request.query.search_query;
+  const url = `https://api.yelp.com/v3/businesses/search?location=${city}`;
+  console.log('inside yelp handler');
+  superagent.get(url)
+    .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
+    // .set('Accept', 'application/json')
+    .then(data => {
+      let yelpData = data.body.businesses.map(city => {
+        return new Yelp(city);
+      });
+      console.log('yelp data', yelpData);
+      response.send(yelpData);
+    })
+    .catch(() => {
+      errorHandler('The kids tore the house down. Find a handy person on Yelp', request, response);
+    });
+}
+
+
+
+
+function Yelp(city){
+  this.name = city.name,
+  this.image_url = city.image_url,
+  this.price = city.price,
+  this.rating = city.rating,
+  this.url = city.url;
+}
 
 
 client.connect()
